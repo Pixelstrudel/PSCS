@@ -18,12 +18,20 @@ $server = $null
 $global:menuOptions = $null
 $pscsFolder = $env:APPDATA + "\.pscs\"
 $pscsTempFile = "templates.json"
-$pscsRegistryFile = "registries.json"
-$pscsMenuFile = "menu.json"
 $pscsTempPath = $pscsFolder + $pscsTempFile
-$pscsRegistryPath = $pscsFolder + $pscsRegistryFile
-$pscsMenuPath = $pscsFolder + $pscsMenuFile
 $dockerNameRegex = '\/?[a-zA-Z0-9_-]+'
+$repoList = @(
+    [PSCustomObject]@{name = "OnPrem Versions of Business Central"; baseUrl = "mcr.microsoft.com/businesscentral/onprem"; tagsUrl = "https://mcr.microsoft.com/v2/businesscentral/onprem/tags/list" },
+    [PSCustomObject]@{name = "SaaS Versions of Business Central"; baseUrl = "mcr.microsoft.com/businesscentral/sandbox"; tagsUrl = "https://mcr.microsoft.com/v2/businesscentral/sandbox/tags/list" },
+    [PSCustomObject]@{name = "Old(er) versions of NAV"; baseUrl = "mcr.microsoft.com/dynamicsnav"; tagsUrl = "https://mcr.microsoft.com/v2/dynamicsnav/tags/list" }
+)
+$menuList = @(
+    [PSCustomObject]@{desc = "create a new container"; func = "Menu.CreateContainer"; char = "1" },
+    [PSCustomObject]@{desc = "remove an existing container"; func = "Menu.RemoveContainer"; char = "2" },
+    [PSCustomObject]@{desc = "update user credentials (Windows User)"; func = "Menu.UpdateWindowsUser"; char = "3" },
+    [PSCustomObject]@{desc = "update license"; func = "Menu.UpdateLicense"; char = "4" },
+    [PSCustomObject]@{desc = "create a new template"; func = "Menu.CreateTemplate"; char = "5" }
+)
 
 Class Template {
     [String] $name
@@ -201,10 +209,11 @@ function View.SelectImage($registry) {
     return $imageUri
 }
 function View.SelectRegistry() {
-    if (Test-Path $pscsRegistryPath) {
-        $registryList = Get-Content -Raw -Path $pscsRegistryPath | ConvertFrom-Json
-        $registrySelection = $registryList | Out-GridView -OutputMode Single
-    }
+    #if (Test-Path $pscsRegistryPath) {
+    #    $registryList = Get-Content -Raw -Path $pscsRegistryPath | ConvertFrom-Json
+    #    $registrySelection = $registryList | Out-GridView -OutputMode Single
+    #}
+    $registrySelection = $repoList | Out-GridView -Title "Select repository" -OutputMode Single
     return $registrySelection
 }
 function View.SelectTemplate() {
@@ -218,10 +227,9 @@ function Menu.Loop {
     param (
         [string]$Title = 'PowerShell Container Script'
     )
-    $global:menuOptions = Get-Content -Raw -Path $pscsMenuPath | ConvertFrom-Json
     #Clear-Host
     Write-Host "================ $Title ================"
-    foreach ($menuItem in $menuOptions) {
+    foreach ($menuItem in $menuList) {
         Write-Host "$($menuItem.char)" -NoNewline -ForegroundColor Yellow
         Write-Host ": Press '$($menuItem.char)' to " -NoNewline
         Write-Host "$($menuItem.desc)" -ForegroundColor Yellow
@@ -234,21 +242,12 @@ function Menu.Loop {
     if ($input -like "q") {
         return
     }
-    $menuChoice = $menuOptions -match $input
+    $menuChoice = $menuList -match $input
     if ($menuChoice) {
         Clear-Host
         &$menuChoice.func
     }
     Menu.Loop
-}
-function Menu.GetOptions {
-    if (Test-Path $pscsRegistryPath) {
-        if (!$server.image) {
-            $registryList = Get-Content -Raw -Path $pscsRegistryPath | ConvertFrom-Json
-            $registrySelection = $registryList | Out-GridView -OutputMode Single
-            $server.image = Config.ImageSelection $registrySelection
-        }
-    }
 }
 function Menu.CreateContainer() {
     $selection = Get-Item -Path $pscsTempPath | GetTemplatesFromFile | Out-GridView -Title "Select a template to create a new container" -OutputMode Single
@@ -303,15 +302,6 @@ function Config.UpdateModule([string]$moduleName) {
 function Config.UpdateAllModules() {
     Config.UpdateModule("navcontainerhelper")
     Config.UpdateModule("DockerHelpers")
-}
-function Config.CheckImage($server) {
-    if (Test-Path $pscsRegistryPath) {
-        if (!$server.image) {
-            $registryList = Get-Content -Raw -Path $pscsRegistryPath | ConvertFrom-Json
-            $registrySelection = $registryList | Out-GridView -OutputMode Single
-            $server.image = Config.ImageSelection $registrySelection
-        }
-    }    
 }
 function Config.InvokeConfigPath() {
     Invoke-Item $pscsFolder
