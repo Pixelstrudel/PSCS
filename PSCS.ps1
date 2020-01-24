@@ -26,11 +26,10 @@ $repoList = @(
     [PSCustomObject]@{name = "Old(er) versions of NAV"; baseUrl = "mcr.microsoft.com/dynamicsnav"; tagsUrl = "https://mcr.microsoft.com/v2/dynamicsnav/tags/list" }
 )
 $menuList = @(
-    [PSCustomObject]@{desc = "create a new container"; func = "Menu.CreateContainer"; char = "1" },
-    [PSCustomObject]@{desc = "remove an existing container"; func = "Menu.RemoveContainer"; char = "2" },
-    [PSCustomObject]@{desc = "update user credentials (Windows User)"; func = "Menu.UpdateWindowsUser"; char = "3" },
-    [PSCustomObject]@{desc = "update license"; func = "Menu.UpdateLicense"; char = "4" },
-    [PSCustomObject]@{desc = "create a new template"; func = "Menu.CreateTemplate"; char = "5" }
+    [PSCustomObject]@{desc = "create a new template"; func = "Menu.CreateTemplate"; char = "1" },    
+    [PSCustomObject]@{desc = "create a new container"; func = "Menu.CreateContainer"; char = "2" },
+    [PSCustomObject]@{desc = "update license"; func = "Menu.UpdateLicense"; char = "3" },
+    [PSCustomObject]@{desc = "remove an existing container"; func = "Menu.RemoveContainer"; char = "4" }
 )
 
 Class Template {
