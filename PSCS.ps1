@@ -25,12 +25,6 @@ $repoList = @(
     [PSCustomObject]@{name = "SaaS Versions of Business Central"; baseUrl = "mcr.microsoft.com/businesscentral/sandbox"; tagsUrl = "https://mcr.microsoft.com/v2/businesscentral/sandbox/tags/list" },
     [PSCustomObject]@{name = "Old(er) versions of NAV"; baseUrl = "mcr.microsoft.com/dynamicsnav"; tagsUrl = "https://mcr.microsoft.com/v2/dynamicsnav/tags/list" }
 )
-$menuList = @(
-    [PSCustomObject]@{desc = "create a new template"; func = "Menu.CreateTemplate"; char = "1" },    
-    [PSCustomObject]@{desc = "create a new container"; func = "Menu.CreateContainer"; char = "2" },
-    [PSCustomObject]@{desc = "update license"; func = "Menu.UpdateLicense"; char = "3" },
-    [PSCustomObject]@{desc = "remove an existing container"; func = "Menu.RemoveContainer"; char = "4" }
-)
 
 Class Template {
     [String] $name
@@ -131,6 +125,20 @@ Class Container {
         Start-Process "c:\programdata\navcontainerhelper\extensions\"+$this.fullName
     }
 }
+class MyMenuOption {
+    [String]$DisplayName
+    [ScriptBlock]$Script
+
+    [String]ToString() {
+        Return $This.DisplayName
+    }
+}
+function New-MenuItem([String]$DisplayName, [ScriptBlock]$Script) {
+    $MenuItem = [MyMenuOption]::new()
+    $MenuItem.DisplayName = $DisplayName
+    $MenuItem.Script = $Script
+    Return $MenuItem
+}
 Function Get-OpenFile($title, $filter, $initialDirectory) { 
     [System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms") |
     Out-Null
@@ -226,27 +234,25 @@ function Menu.Loop {
     param (
         [string]$Title = 'PowerShell Container Script'
     )
+    $menuList = @(
+        $(New-MenuItem -DisplayName "create a new template" -Script { Menu.CreateTemplate }),
+        $(New-MenuItem -DisplayName "create a new container" -Script { Menu.CreateContainer }),
+        $(Get-MenuSeparator),
+        $(New-MenuItem -DisplayName "update license" -Script { Menu.UpdateLicense }),
+        $(Get-MenuSeparator),
+        $(New-MenuItem -DisplayName "remove an existing container" -Script { Menu.RemoveContainer })
+    )    
     #Clear-Host
-    Write-Host "================ $Title ================"
-    foreach ($menuItem in $menuList) {
-        Write-Host "$($menuItem.char)" -NoNewline -ForegroundColor Yellow
-        Write-Host ": Press '$($menuItem.char)' to " -NoNewline
-        Write-Host "$($menuItem.desc)" -ForegroundColor Yellow
+    do{
+        Write-Host "================ $Title ================"
+        Write-Host "Press 'Esc' to quit.`n"
+        $Chosen = Show-Menu -MenuItems $menuList
+        if($chosen)
+        {
+            & $Chosen.Script
+        }
     }
-    Write-Host "Q" -NoNewline -ForegroundColor Red
-    Write-Host ": Press 'Q' to " -NoNewline
-    Write-Host "quit" -ForegroundColor Red
-
-    $input = Read-Host "Please select an option"
-    if ($input -like "q") {
-        return
-    }
-    $menuChoice = $menuList -match $input
-    if ($menuChoice) {
-        Clear-Host
-        &$menuChoice.func
-    }
-    Menu.Loop
+    until ($chosen -eq $null)
 }
 function Menu.CreateContainer() {
     $selection = Get-Item -Path $pscsTempPath | GetTemplatesFromFile | Out-GridView -Title "Select a template to create a new container" -OutputMode Single
@@ -301,6 +307,7 @@ function Config.UpdateModule([string]$moduleName) {
 function Config.UpdateAllModules() {
     Config.UpdateModule("navcontainerhelper")
     Config.UpdateModule("DockerHelpers")
+    Config.UpdateModule("psmenu")
 }
 function Config.InvokeConfigPath() {
     Invoke-Item $pscsFolder
