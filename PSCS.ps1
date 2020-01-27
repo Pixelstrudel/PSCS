@@ -36,11 +36,11 @@ Class Template {
     [String] $name
     [String] $prefix
     [String] $image
-    [System.IO.FileInfo] $licenseFile
+    [String] $licenseFile
     [String] $authType
     [System.Collections.Generic.List[System.Object]] $containerList
     
-    [Container] CreateContainer([string]$containerName, [System.IO.FileInfo]$dbFile) {
+    [Container] CreateContainer([string]$containerName, [String]$dbFile) {
         $fullContainerName = $this.prefix + "-" + $containerName
         $params = @{
             'containerName'            = $fullContainerName;
