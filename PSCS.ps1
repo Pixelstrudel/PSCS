@@ -16,9 +16,19 @@ Set-StrictMode -Version Latest
 
 $server = $null
 $global:menuOptions = $null
-$pscsFolder = $env:APPDATA + "\.pscs\"
-$pscsTempFile = "templates.json"
-$pscsTempPath = $pscsFolder + $pscsTempFile
+
+$pscsTempPath = $env:APPDATA + "\.pscs\templates.json"
+if ($Args) {
+    if (Test-Path $Args[0] -PathType Leaf) {
+        Write-Host("Using $($Args[0]) as template file!")
+        $pscsTempPath = $Args[0]
+    }
+    else {
+        throw("$($Args[0]) is not a template file!")
+    }
+}
+$pscsFolder = Split-Path -Path $pscsTempPath
+
 $dockerNameRegex = '\/?[a-zA-Z0-9_-]+'
 $repoList = @(
     [PSCustomObject]@{name = "OnPrem Versions of Business Central"; baseUrl = "mcr.microsoft.com/businesscentral/onprem"; tagsUrl = "https://mcr.microsoft.com/v2/businesscentral/onprem/tags/list" },
@@ -243,12 +253,11 @@ function Menu.Loop {
         $(New-MenuItem -DisplayName "remove an existing container" -Script { Menu.RemoveContainer })
     )    
     #Clear-Host
-    do{
+    do {
         Write-Host "================ $Title ================"
         Write-Host "Press 'Esc' to quit.`n"
         $Chosen = Show-Menu -MenuItems $menuList
-        if($chosen)
-        {
+        if ($chosen) {
             & $Chosen.Script
         }
     }
